@@ -1,6 +1,14 @@
 // 配置常量
 // 客户端直连TuneHub API，避免服务端代理问题
 const API_BASE = 'https://music-dl.sayqz.com';
+
+// 确保URL使用HTTPS协议（避免混合内容问题）
+function ensureHttps(url) {
+    if (url.startsWith('http://')) {
+        return url.replace('http://', 'https://');
+    }
+    return url;
+}
     const QUALITIES = ['128k', '320k', 'flac', 'flac24bit'];
     const QUALITY_NAMES = {
         '128k': '标准 128k',
@@ -899,7 +907,9 @@ const API_BASE = 'https://music-dl.sayqz.com';
     async function loadAudio(url) {
         try {
             const response = await fetch(url, { method: 'HEAD' });
-            const audioUrl = response.url;
+            let audioUrl = response.url;
+            // 确保使用HTTPS协议避免混合内容问题
+            audioUrl = ensureHttps(audioUrl);
             audio.src = audioUrl;
             audio.play();
         } catch (error) {
@@ -1336,7 +1346,10 @@ const API_BASE = 'https://music-dl.sayqz.com';
             try {
                 const url = `${API_BASE}/api/?source=${platform}&id=${songId}&type=url&br=${quality}`;
                 const response = await fetch(url, { method: 'HEAD' });
-                audioUrlMap[quality] = response.url;
+                let audioUrl = response.url;
+                // 确保使用HTTPS协议避免混合内容问题
+                audioUrl = ensureHttps(audioUrl);
+                audioUrlMap[quality] = audioUrl;
                 return { quality, success: true };
             } catch (error) {
                 console.log(`无法获取音质 ${quality}:`, error);
@@ -1409,7 +1422,9 @@ const API_BASE = 'https://music-dl.sayqz.com';
                 // 获取新音质的URL
                 const newUrl = getAudioUrl(newQuality, platform, currentSong.id);
                 const response = await fetch(newUrl, { method: 'HEAD' });
-                const audioUrl = response.url;
+                let audioUrl = response.url;
+                // 确保使用HTTPS协议避免混合内容问题
+                audioUrl = ensureHttps(audioUrl);
 
                 // 设置新音频源，保持播放进度
                 audio.src = audioUrl;
