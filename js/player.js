@@ -1,6 +1,7 @@
 // 配置常量
-// 客户端直连TuneHub API，避免服务端代理问题
-const API_BASE = 'https://music-dl.sayqz.com';
+// 根据环境选择API地址
+const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '';
+const API_BASE = isLocalhost ? 'https://music-dl.sayqz.com' : '/api';
     const QUALITIES = ['128k', '320k', 'flac', 'flac24bit'];
     const QUALITY_NAMES = {
         '128k': '标准 128k',
@@ -48,6 +49,10 @@ const API_BASE = 'https://music-dl.sayqz.com';
     let currentPlatform = 'netease';
     let lastLyricsIndex = -1;
     let lyricsUpdateTimer = null;
+    let lastSearchTime = 0;
+    const MIN_SEARCH_INTERVAL = 2000; // 2秒最小搜索间隔
+    let lastFallbackSearchTime = 0;
+    const MIN_FALLBACK_INTERVAL = 5000; // 5秒最小回退搜索间隔
 
     // 初始化
     window.onload = function() {
@@ -76,10 +81,36 @@ const API_BASE = 'https://music-dl.sayqz.com';
         });
 
         audio.addEventListener('error', async function() {
-            console.error('音频加载错误:', audio.error);
-            if (audio.error && audio.error.code === 4) {
-                // MEDIA_ERR_SRC_NOT_SUPPORTED
-                console.log('音频源不支持，尝试回退机制...');
+            console.error('音频加载错误:', audio.error, '当前URL:', audio.src);
+
+            // 处理不同类型的音频错误
+            if (audio.error) {
+                const errorCode = audio.error.code;
+                const errorMessages = {
+                    1: '音频加载被中止',
+                    2: '网络错误，无法加载音频',
+                    3: '音频解码错误',
+                    4: '音频格式不支持'
+                };
+
+                const errorMessage = errorMessages[errorCode] || `未知错误 (代码: ${errorCode})`;
+                console.log(`音频错误: ${errorMessage}`);
+
+                // 对于网络错误或格式不支持错误，尝试下一个音质
+                if (errorCode === 2 || errorCode === 4) {
+                    console.log('尝试切换到下一个音质...');
+                    await tryNextQuality();
+                } else if (errorCode === 1) {
+                    // 加载被中止，可能是用户操作，不需要自动重试
+                    console.log('音频加载被用户中止');
+                } else {
+                    // 解码错误或其他错误，也尝试下一个音质
+                    console.log('尝试切换到下一个音质...');
+                    await tryNextQuality();
+                }
+            } else {
+                // 没有错误对象，但事件触发了，尝试下一个音质
+                console.log('音频错误事件触发，尝试下一个音质...');
                 await tryNextQuality();
             }
         });
@@ -744,6 +775,16 @@ const API_BASE = 'https://music-dl.sayqz.com';
 
         currentQuality = quality;
         currentPlatform = platform;
+
+        // 搜索频率限制
+        const now = Date.now();
+        const timeSinceLastSearch = now - lastSearchTime;
+        if (timeSinceLastSearch < MIN_SEARCH_INTERVAL) {
+            showError(`搜索过于频繁，请等待 ${Math.ceil((MIN_SEARCH_INTERVAL - timeSinceLastSearch) / 1000)} 秒后再试`);
+            return;
+        }
+
+        lastSearchTime = now;
         showLoading();
 
         try {
@@ -1497,7 +1538,18 @@ const API_BASE = 'https://music-dl.sayqz.com';
         // 所有音质都失败，尝试切换到QQ音乐
         const currentPlatform = getSongPlatform(currentSong);
         if (currentPlatform === 'kuwo') {
+            // 检查回退搜索频率限制
+            const now = Date.now();
+            const timeSinceLastFallback = now - lastFallbackSearchTime;
+            if (timeSinceLastFallback < MIN_FALLBACK_INTERVAL) {
+                console.log(`回退搜索过于频繁，请等待 ${Math.ceil((MIN_FALLBACK_INTERVAL - timeSinceLastFallback) / 1000)} 秒后再试`);
+                showError('音频加载失败，请稍后重试或尝试其他歌曲');
+                return;
+            }
+
             console.log('酷我音乐所有音质加载失败，尝试切换到QQ音乐...');
+            lastFallbackSearchTime = now;
+
             const songId = currentSong.id;
             const songName = currentSong.name;
             const songArtist = currentSong.artist;
