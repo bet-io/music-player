@@ -3,6 +3,13 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)](#)
 [![Browser Support](https://img.shields.io/badge/browsers-ES6%2B-orange.svg)](#browser-compatibility)
+[![Version](https://img.shields.io/badge/version-2.0.1-blue.svg)](#)
+
+## 🚀 在线体验
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/bet-io/music-player&project-name=tunehub-music-player&repository-name=tunehub-music-player&demo-title=TuneHub+音乐播放器&demo-description=现代化的在线音乐播放器&demo-url=https://tunehub-music-player.vercel.app&demo-image=https://tunehub-music-player.vercel.app/og.png)
+
+**👉 一键部署到 Vercel**: 点击上方按钮，即可将此项目部署到 Vercel，获得全球 CDN 加速！
 
 一个基于 TuneHub API 的现代化 Web 音乐播放器，支持多平台音乐搜索、播放和下载。
 
@@ -96,16 +103,43 @@
 
 ## 🚀 快速开始
 
-### 环境要求
+### 🌐 在线部署 (推荐)
+
+#### 一键部署到 Vercel
+点击页面顶部的 **"Deploy with Vercel"** 按钮，即可一键部署到 Vercel：
+- ✅ 全球 CDN 加速
+- ✅ 自动 HTTPS
+- ✅ 零配置部署
+- ✅ 免费域名
+
+#### 其他部署平台
+- **Netlify**: 拖拽 `index.html` 到 [Netlify Drop](https://app.netlify.com/drop)
+- **GitHub Pages**: 在仓库设置中启用 Pages 功能
+- **Cloudflare Pages**: 导入 GitHub 仓库即可
+
+### 本地运行
+
+#### 环境要求
 - 现代浏览器（支持 ES6+）
 - 网络连接（访问 TuneHub API）
 
-### 运行方式
+#### 运行方式
 ```bash
 # 直接在浏览器中打开
-start music-player.html  # Windows
-open music-player.html   # macOS
-xdg-open music-player.html  # Linux
+start index.html  # Windows
+open index.html   # macOS
+xdg-open index.html  # Linux
+```
+
+#### 使用本地服务器
+```bash
+# Python 3
+python -m http.server 8000
+
+# Node.js
+npx http-server
+
+# 访问 http://localhost:8000
 ```
 
 ## 📁 项目结构
