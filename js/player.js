@@ -1,7 +1,7 @@
 // 配置常量
 // 根据环境选择API地址
 const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '';
-const API_BASE = isLocalhost ? 'https://music-dl.sayqz.com' : '/api';
+const API_BASE = isLocalhost ? 'https://music-dl.sayqz.com/api' : '/api';
     const QUALITIES = ['128k', '320k', 'flac', 'flac24bit'];
     const QUALITY_NAMES = {
         '128k': '标准 128k',
@@ -790,9 +790,9 @@ const API_BASE = isLocalhost ? 'https://music-dl.sayqz.com' : '/api';
         try {
             let url;
             if (platform === 'aggregateSearch') {
-                url = `${API_BASE}/api/?type=aggregateSearch&keyword=${encodeURIComponent(keyword)}`;
+                url = `${API_BASE}/?type=aggregateSearch&keyword=${encodeURIComponent(keyword)}`;
             } else {
-                url = `${API_BASE}/api/?source=${platform}&type=search&keyword=${encodeURIComponent(keyword)}`;
+                url = `${API_BASE}/?source=${platform}&type=search&keyword=${encodeURIComponent(keyword)}`;
             }
 
             const response = await fetch(url);
@@ -865,7 +865,7 @@ const API_BASE = isLocalhost ? 'https://music-dl.sayqz.com' : '/api';
             }
 
             const platformInfo = platform === 'aggregateSearch' ? song.platform : platform;
-            const coverUrl = `${API_BASE}/api/?source=${platformInfo}&id=${song.id}&type=pic`;
+            const coverUrl = `${API_BASE}/?source=${platformInfo}&id=${song.id}&type=pic`;
 
             songItem.innerHTML = `
                 <img src="${coverUrl}" alt="封面" onerror="this.onerror=null;this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2250%22 height=%2250%22 viewBox=%220 0 50 50%22><rect fill=%22%23ddd%22 width=%2250%22 height=%2250%22 rx=%2210%22/><text x=%2225%22 y=%2232%22 font-size=%2220%22 text-anchor=%22middle%22 fill=%22%23999%22>🎵</text></svg>'">
@@ -920,7 +920,7 @@ const API_BASE = isLocalhost ? 'https://music-dl.sayqz.com' : '/api';
     async function loadSongInfo(song) {
         try {
             const platform = getSongPlatform(song);
-            const infoUrl = `${API_BASE}/api/?source=${platform}&id=${song.id}&type=info`;
+            const infoUrl = `${API_BASE}/?source=${platform}&id=${song.id}&type=info`;
             const infoResponse = await fetch(infoUrl);
             const infoData = await infoResponse.json();
 
@@ -1388,7 +1388,7 @@ const API_BASE = isLocalhost ? 'https://music-dl.sayqz.com' : '/api';
 
         // 直接构造原始API URL，不进行网络请求
         QUALITIES.forEach((quality) => {
-            const url = `${API_BASE}/api/?source=${platform}&id=${songId}&type=url&br=${quality}`;
+            const url = `${API_BASE}/?source=${platform}&id=${songId}&type=url&br=${quality}`;
             audioUrlMap[quality] = url;
         });
     }
@@ -1399,7 +1399,7 @@ const API_BASE = isLocalhost ? 'https://music-dl.sayqz.com' : '/api';
             return audioUrlMap[quality];
         }
         // 如果预加载失败，返回原始URL
-        return `${API_BASE}/api/?source=${platform}&id=${songId}&type=url&br=${quality}`;
+        return `${API_BASE}/?source=${platform}&id=${songId}&type=url&br=${quality}`;
     }
 
     // 更新活跃歌曲
@@ -1555,7 +1555,7 @@ const API_BASE = isLocalhost ? 'https://music-dl.sayqz.com' : '/api';
             const songArtist = currentSong.artist;
 
             // 搜索QQ音乐中的相同歌曲
-            const qqSearchUrl = `${API_BASE}/api/?source=qq&type=search&keyword=${encodeURIComponent(`${songName} ${songArtist}`)}`;
+            const qqSearchUrl = `${API_BASE}/?source=qq&type=search&keyword=${encodeURIComponent(`${songName} ${songArtist}`)}`;
             try {
                 const response = await fetch(qqSearchUrl);
                 const data = await response.json();
