@@ -143,12 +143,24 @@ npx http-server
 ## 📁 项目结构
 
 ```
-├── music-player.html              # 主程序文件
-├── music-player-backup.html       # 备份文件
-├── tunefree-api.md                # API 文档
-├── OPTIMIZATION_SUMMARY.md        # 优化总结
-├── TEST_CHECKLIST.md              # 测试清单
-└── README.md                       # 项目说明
+├── index.html                    # 单文件生产版本（推荐部署）
+├── test-proxy.html               # API代理测试页面
+├── css/
+│   └── style.css                 # 样式表
+├── js/
+│   └── player.js                 # 主JavaScript逻辑
+├── api/
+│   └── index.js                  # Vercel服务器less代理
+├── vercel.json                   # Vercel部署配置
+├── tunefree-api.md               # TuneHub API文档
+├── TEST_CHECKLIST.md             # 测试清单
+├── music-player-features.md      # 详细功能文档
+├── FIXES.md                      # Bug修复记录
+├── DEPLOY.md                     # 部署指南
+├── STRUCTURE.md                  # 项目结构文档
+├── README.md                     # 项目说明
+├── README-V2.md                  # V2.0功能文档
+└── CLAUDE.md                     # Claude Code开发指导
 ```
 
 ## 🎯 使用指南
