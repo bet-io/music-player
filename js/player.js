@@ -1,14 +1,6 @@
 // 配置常量
 // 客户端直连TuneHub API，避免服务端代理问题
 const API_BASE = 'https://music-dl.sayqz.com';
-
-// 确保URL使用HTTPS协议（避免混合内容问题）
-function ensureHttps(url) {
-    if (url.startsWith('http://')) {
-        return url.replace('http://', 'https://');
-    }
-    return url;
-}
     const QUALITIES = ['128k', '320k', 'flac', 'flac24bit'];
     const QUALITY_NAMES = {
         '128k': '标准 128k',
@@ -906,30 +898,12 @@ function ensureHttps(url) {
     // 加载音频
     async function loadAudio(url) {
         try {
-            // 尝试HEAD请求获取重定向后的URL
-            const response = await fetch(url, { method: 'HEAD' });
-            if (!response.ok) {
-                throw new Error(`HEAD请求失败: ${response.status}`);
-            }
-            let audioUrl = response.url;
-            // 确保使用HTTPS协议避免混合内容问题
-            audioUrl = ensureHttps(audioUrl);
-            console.log('音频URL:', audioUrl);
-            audio.src = audioUrl;
+            audio.src = url;
             audio.play();
         } catch (error) {
-            console.error('HEAD请求失败，尝试直接使用原始URL:', error);
-            // HEAD失败时，尝试直接使用原始URL
-            try {
-                let audioUrl = ensureHttps(url);
-                console.log('使用原始URL作为后备:', audioUrl);
-                audio.src = audioUrl;
-                audio.play();
-            } catch (fallbackError) {
-                console.error('后备方案也失败:', fallbackError);
-                showError('加载音频失败');
-                await tryNextQuality();
-            }
+            console.error('加载音频失败:', error);
+            showError('加载音频失败');
+            await tryNextQuality();
         }
     }
 
@@ -1351,32 +1325,15 @@ function ensureHttps(url) {
         return 'netease';
     }
 
-    // 预加载多个音质的URL（并行优化）
+    // 预加载多个音质的URL（直接使用原始API URL）
     async function preloadMultipleQualities(platform, songId) {
         audioUrlMap = {};
 
-        // 使用Promise.all并行预加载所有音质
-        const preloadPromises = QUALITIES.map(async (quality) => {
-            try {
-                const url = `${API_BASE}/api/?source=${platform}&id=${songId}&type=url&br=${quality}`;
-                const response = await fetch(url, { method: 'HEAD' });
-                if (!response.ok) {
-                    throw new Error(`HEAD请求失败: ${response.status}`);
-                }
-                let audioUrl = response.url;
-                // 确保使用HTTPS协议避免混合内容问题
-                audioUrl = ensureHttps(audioUrl);
-                audioUrlMap[quality] = audioUrl;
-                return { quality, success: true };
-            } catch (error) {
-                console.log(`无法获取音质 ${quality}:`, error);
-                // 预加载失败，不设置audioUrlMap[quality]，让getAudioUrl返回原始URL
-                return { quality, success: false, error };
-            }
+        // 直接构造原始API URL，不进行网络请求
+        QUALITIES.forEach((quality) => {
+            const url = `${API_BASE}/api/?source=${platform}&id=${songId}&type=url&br=${quality}`;
+            audioUrlMap[quality] = url;
         });
-
-        // 等待所有预加载完成
-        await Promise.allSettled(preloadPromises);
     }
 
     // 获取音频URL，如果没有预加载则返回原始URL
@@ -1437,12 +1394,8 @@ function ensureHttps(url) {
             playBtn.disabled = true;
 
             try {
-                // 获取新音质的URL
-                const newUrl = getAudioUrl(newQuality, platform, currentSong.id);
-                const response = await fetch(newUrl, { method: 'HEAD' });
-                let audioUrl = response.url;
-                // 确保使用HTTPS协议避免混合内容问题
-                audioUrl = ensureHttps(audioUrl);
+                // 获取新音质的URL（原始API URL）
+                const audioUrl = getAudioUrl(newQuality, platform, currentSong.id);
 
                 // 设置新音频源，保持播放进度
                 audio.src = audioUrl;
@@ -1515,14 +1468,11 @@ function ensureHttps(url) {
 
             // 尝试加载这个音质
             try {
-                const response = await fetch(nextUrl, { method: 'HEAD' });
-                if (response.url) {
-                    currentQuality = nextQuality;
-                    document.getElementById('currentQuality').textContent = `当前音质: ${QUALITY_NAMES[nextQuality]}`;
-                    document.getElementById('qualityChange').value = nextQuality;
-                    await loadAudio(response.url);
-                    return;
-                }
+                currentQuality = nextQuality;
+                document.getElementById('currentQuality').textContent = `当前音质: ${QUALITY_NAMES[nextQuality]}`;
+                document.getElementById('qualityChange').value = nextQuality;
+                await loadAudio(nextUrl);
+                return;
             } catch (error) {
                 console.log(`尝试音质 ${nextQuality} 失败:`, error);
             }
