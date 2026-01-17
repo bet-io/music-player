@@ -45,7 +45,7 @@ body {
         gap: 10px;
     }
 
-    .theme-toggle, .mini-player-toggle {
+    .theme-toggle {
         background: rgba(255, 255, 255, 0.8);
         border: 1px solid rgba(0, 0, 0, 0.1);
         border-radius: 50%;
@@ -59,12 +59,12 @@ body {
         font-size: 18px;
     }
 
-    .theme-toggle:hover, .mini-player-toggle:hover {
+    .theme-toggle:hover {
         background: rgba(102, 126, 234, 0.1);
         transform: scale(1.1);
     }
 
-    body.dark-mode .theme-toggle, body.dark-mode .mini-player-toggle {
+    body.dark-mode .theme-toggle {
         background: rgba(30, 30, 45, 0.8);
         border: 1px solid rgba(255, 255, 255, 0.2);
     }
@@ -116,97 +116,6 @@ body {
         }
     }
 
-    /* 迷你播放器样式 */
-    .mini-player {
-        position: fixed !important;
-        bottom: 20px;
-        right: 20px;
-        width: 320px !important;
-        max-height: 120px !important;
-        z-index: 1000;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    }
-
-    .mini-player-content {
-        padding: 15px;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
-
-    .mini-player-cover {
-        width: 60px;
-        height: 60px;
-        border-radius: 8px;
-        flex-shrink: 0;
-    }
-
-    .mini-player-info {
-        flex: 1;
-        min-width: 0;
-    }
-
-    .mini-player-title {
-        font-size: 14px;
-        font-weight: 600;
-        margin-bottom: 4px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    .mini-player-artist {
-        font-size: 12px;
-        color: #888;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    .mini-player-controls {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        align-items: center;
-    }
-
-    .mini-player-buttons {
-        display: flex;
-        gap: 8px;
-    }
-
-    .mini-btn {
-        background: none;
-        border: none;
-        font-size: 16px;
-        cursor: pointer;
-        padding: 4px;
-        border-radius: 4px;
-        transition: all 0.2s;
-    }
-
-    .mini-btn:hover {
-        background: rgba(255, 255, 255, 0.1);
-    }
-
-    .mini-player-progress {
-        width: 100%;
-        height: 3px;
-        background: rgba(0, 0, 0, 0.1);
-        border-radius: 2px;
-        overflow: hidden;
-    }
-
-    .mini-player-progress-bar {
-        height: 100%;
-        background: #667eea;
-        width: 0;
-        transition: width 0.1s;
-    }
-
-    body.dark-mode .mini-player-progress {
-        background: rgba(255, 255, 255, 0.1);
-    }
 
     /* 音频频谱可视化 */
     .visualizer-container {

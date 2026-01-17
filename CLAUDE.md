@@ -4,33 +4,67 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a web-based music player application that uses the TuneHub API to search, play, and download music from multiple platforms (NetEase, Kuwo, QQ Music). The application is a single HTML file with embedded CSS and JavaScript.
+This is a web-based music player application that uses the TuneHub API to search, play, and download music from multiple platforms (NetEase, Kuwo, QQ Music). The application is primarily deployed as a single HTML file with embedded CSS and JavaScript, with Vercel deployment support for API proxy functionality.
 
 ## Project Structure
 
+### Core Application Files
 ```
-├── music-player.html              # Main application - single-file music player
-├── music-player-backup.html       # Backup copy (2026-01-17)
-├── music-player-backup-20260117-143603.html  # Latest backup with timestamp
-├── music-player-enhanced.html     # Enhanced version with additional features
+├── index.html                     # Single-file production version (102KB) - recommended for deployment
+├── index-separate.html            # Separated development version (30KB) - CSS/JS in separate files
+├── music-player.html              # Source version with detailed comments (101KB) - for learning
+├── css/
+│   └── style.css                  # Main stylesheet (~1.1KB)
+├── js/
+│   └── player.js                  # Main JavaScript logic (~15KB)
+├── api/
+│   └── index.js                   # Vercel serverless proxy for TuneHub API
+└── assets/                        # Static resources (reserved for future use)
+```
+
+### Configuration & Documentation
+```
+├── vercel.json                    # Vercel deployment configuration
+├── test-proxy.html                # API proxy testing page
 ├── tunefree-api.md                # TuneHub API documentation (Chinese)
-├── CLAUDE.md                      # This file - development guidance
-├── TEST_CHECKLIST.md              # Comprehensive test checklist
-├── README.md                      # Project documentation
+├── README.md                      # Main project documentation
 ├── README-V2.md                   # V2.0 feature documentation
-└── .claude/
-    └── settings.local.json        # Claude Code local settings
+├── DEPLOY.md                      # Deployment guide
+├── STRUCTURE.md                   # Project structure documentation
+├── FIXES.md                       # Bug fix records
+├── music-player-features.md       # Detailed feature documentation
+├── TEST_CHECKLIST.md              # Manual testing checklist
+└── CLAUDE.md                      # This file - development guidance
 ```
 
 ## Architecture
 
-### Single-File Application
-The entire application is contained in `music-player.html` with:
-- **Embedded CSS** (~1200 lines) - Modern gradient design with glassmorphism effects
-- **Embedded JavaScript** (~1600 lines) - Full music player functionality
-- **No build process required** - Just open in a browser
+### Application Architecture
 
-### Key Components
+**Single-File Version (`index.html`):**
+- **Embedded CSS** - Modern gradient design with glassmorphism effects
+- **Embedded JavaScript** - Full music player functionality (~1600 lines)
+- **No build process required** - Just open in a browser
+- **Recommended for deployment** - Single file simplifies hosting
+
+**Separated Development Version (`index-separate.html`):**
+- **External CSS** (`css/style.css`) - ~1.1KB stylesheet
+- **External JavaScript** (`js/player.js`) - ~15KB logic file
+- **Easier maintenance** - Separate concerns for development
+- **Recommended for development** - Faster iteration and debugging
+
+**Source Version (`music-player.html`):**
+- **Detailed comments** - Extensive inline documentation
+- **Learning resource** - Understand implementation details
+- **Reference version** - Preserves original structure with annotations
+
+### Vercel Deployment Architecture
+For deployment to Vercel or similar platforms:
+- **API Proxy** (`api/index.js`) - Serverless function that proxies requests to TuneHub API
+- **Vercel Config** (`vercel.json`) - Routes `/api/*` requests to the proxy function
+- **CORS Support** - The proxy handles cross-origin requests from the deployed frontend
+
+### Core Components
 
 **Player State (JavaScript variables):**
 - `audio` - HTML5 Audio element for playback
@@ -38,369 +72,234 @@ The entire application is contained in `music-player.html` with:
 - `songs` - Array of search results
 - `currentSongIndex` - Index in the songs array
 - `lyricsData` - Parsed lyrics for synchronized display
-- `currentSongInfo` - Full song metadata from API
 - `currentQuality` - Current audio quality setting (128k, 320k, flac, flac24bit)
-- `audioUrlMap` - Preloaded URLs for different quality levels
-- `currentPlatform` - Current search platform (netease, kuwo, qq, aggregateSearch)
 
-**API Base URL:** `https://music-dl.sayqz.com`
-
-### Core Functions
-
-#### Search & Playback
-- `searchMusic()` - Searches music using platform or aggregate search
-- `displaySearchResults()` - Renders search results with album covers
-- `playSong(index)` - Plays selected song and loads metadata
-- `loadSongInfo()` - Fetches song info, cover, lyrics, and preloads audio URLs
-- `loadAudio()` - Loads and plays audio using HEAD request to get final URL
-
-#### Download Functions
-All download functions use `fetch` with `blob` to create object URLs, which prevents playback interruption:
-
-- `downloadFile()` - **NEW** Generic download function (reduces ~200 lines of code)
-- `downloadCover()` - Downloads album cover as `歌名_歌手名.jpg`
-- `downloadLyrics()` - Downloads lyrics as `.lrc` file
-- `downloadCurrentQualityAudio()` - Downloads current audio at selected quality
-- `downloadAudioAndLyrics()` - Downloads both audio and lyrics
-- `downloadAll()` - Downloads audio, lyrics, and cover together
-
-**Note:** All download functions now use the common `downloadFile()` helper function, significantly reducing code duplication.
-
-#### Quality Management
-- `preloadMultipleQualities()` - **OPTIMIZED** Preloads URLs for all quality levels in parallel using `Promise.allSettled()` (~75% faster)
-- `changeQuality()` - **OPTIMIZED** Real-time quality switching with playback progress preservation
-- `tryNextQuality()` - Fallback to next available quality if current fails
-- `getAudioUrl()` - Retrieves preloaded URL or generates API URL
-
-**Real-time Quality Switching Features:**
-- Preserves current playback position when switching qualities
-- Maintains play/pause state automatically
-- Shows visual feedback during switching (⚡ 切换中)
-- Disables controls during loading to prevent conflicts
-- Automatic fallback to next quality on failure
-
-#### Lyrics Handling
-- `parseLrc()` - Parses LRC format lyrics with support for multiple time formats
-- `displayLyrics()` - Renders lyrics with scrollable container
-- `updateLyricsHighlight()` - **OPTIMIZED** Synchronizes lyrics with 50ms throttle to reduce DOM operations
-
-#### Helper Functions
-- `sanitizeFileName()` - Removes illegal file system characters (<, >, :, ", /, \, |, ?, *)
-- `getSongPlatform()` - Determines music platform from song object or URL
-- `formatTime()` - Converts seconds to MM:SS format
-- `updateProgress()` - Updates progress bar and current time display
-- `seekTo()` - Allows clicking progress bar to seek
-
-### UI Features
-- **Responsive design** - Works on desktop and mobile (breakpoint at 900px)
-- **Glassmorphism UI** - Modern frosted glass effect with backdrop-filter
-- **Album cover animation** - Pulsing animation during playback
-- **Keyboard shortcuts** - Space (play/pause), Arrow Left/Right (seek -10s/+10s)
-- **Quality selector** - Real-time quality switching
-- **Volume control** - Slider with visual percentage display, persists preference across sessions
-- **Active song highlighting** - Visual indication of currently playing song
-- **Error handling** - User-friendly error messages with retry suggestions
-
-### V2.0 Features (2026-01-17 Update)
-
-#### Dark/Light Theme
-- Complete theme switching system
-- Persists preference to localStorage
-- All components automatically adapt
-
-#### Mini Player
-- Floating mini player in bottom-right corner
-- Complete playback controls
-- Progress bar display
-- Toggle between mini and full player
-
-#### Audio Visualizer
-- Real-time frequency spectrum display
-- 64 bars with gradient colors
-- Canvas-based rendering using Web Audio API
-
-#### Play Modes
-- **顺序播放** (Normal) - Play songs in order
-- **单曲循环** (Single) - Repeat current song
-- **列表循环** (Loop) - Loop through entire list
-- **随机播放** (Shuffle) - Random selection
-
-#### Playlist Management
-- Create multiple playlists
-- Add songs from search results
-- View and play songs from playlists
-- Delete playlists and songs
-
-#### Play Statistics
-- Total play count
-- Today's play count
-- Total play time (minutes)
-- Favorite song count
-
-#### Smart Recommendations
-- Based on play history
-- Click to search and play
-
-#### Data Management
-- Export all data as JSON
-- Import from backup
-- Backup playlists separately
-- Clear all data
-
-#### Notification System
-- Toast notifications for all actions
-- Auto-dismiss after 3 seconds
-- Smooth slide animations
-
-#### Offline Mode
-- All data persisted to localStorage
-- View history and playlists offline
-- Automatic sync when online
+**API Integration:**
+- **Local Proxy:** `/api/?type=aggregateSearch&keyword=...` (for deployed environments)
+- **Direct:** `https://music-dl.sayqz.com/api/...` (for local development)
 
 ## Commands
 
-### Running the Application
-```bash
-# Open in default browser (no build required)
-start music-player.html  # Windows
-open music-player.html   # macOS
-xdg-open music-player.html  # Linux
-```
-
-### Backup and Version Management
-```bash
-# Create backup with timestamp
-copy music-player.html music-player-backup-YYYYMMDD-HHMMSS.html
-
-# Restore from backup
-copy music-player-backup.html music-player.html
-
-# Create optimized backup
-copy music-player.html music-player-optimized.html
-```
-
-### Testing
-```bash
-# No automated tests - test manually by opening in browser
-# Run comprehensive test checklist from TEST_CHECKLIST.md
-```
-
-## Development
-
 ### Development Workflow
-**Note:** This is a pure client-side application with no traditional development workflow:
-- **No package.json** - No Node.js dependencies
-- **No build tools** - Direct HTML/CSS/JS
-- **No test runners** - Manual testing via browser
-- **No linting/formatting** - Code style is manual
-- **Version control** - Manual file backups with timestamps
 
-### Testing
-The application is client-side only. To test:
-1. Open `music-player.html` in browser
-2. Search for a song (e.g., "周杰伦")
-3. Select a song from results to play
-4. Test download functions
-5. Test quality switching
-6. Test volume control
+**Choose the right file for your task:**
+- **Production deployment**: Use `index.html` (single file)
+- **Development & debugging**: Use `index-separate.html` (separated files)
+- **Learning & reference**: Use `music-player.html` (commented source)
 
-**Comprehensive Testing:** See `TEST_CHECKLIST.md` for detailed test scenarios covering all features.
+### Running the Application
 
-### Common Development Tasks
-
-**Modifying the UI:**
-- CSS is embedded in `<style>` tag (lines 7-1217)
-- Main layout uses CSS Grid with 2 columns on desktop, 1 on mobile
-- Colors use gradient theme: `#667eea` to `#764ba2`
-
-**Modifying the API:**
-- API base URL is defined at line 1451: `const API_BASE = 'https://music-dl.sayqz.com'`
-- All API endpoints are constructed dynamically based on platform and song ID
-
-**Adding new features:**
-- Add new download functions after existing download functions (around line 2621)
-- Add new UI controls in the HTML structure (around line 1245-1445)
-- Update CSS for new UI elements (embedded in `<style>` tag)
-- **Note:** Consider using the existing `downloadFile()` helper function for any new download features
-
-### API Integration Details
-
-#### Supported Platforms
-- `netease` - 网易云音乐 (NetEase Cloud Music)
-- `kuwo` - 酷我音乐 (Kuwo Music)
-- `qq` - QQ音乐 (QQ Music)
-- `aggregateSearch` - Searches all platforms simultaneously
-
-#### API Endpoints Used
-- **Search:** `GET /api/?source={platform}&type=search&keyword={keyword}`
-- **Aggregate Search:** `GET /api/?type=aggregateSearch&keyword={keyword}`
-- **Song Info:** `GET /api/?source={platform}&id={id}&type=info`
-- **Audio URL:** `GET /api/?source={platform}&id={id}&type=url&br={quality}`
-- **Album Cover:** `GET /api/?source={platform}&id={id}&type=pic`
-- **Lyrics:** `GET /api/?source={platform}&id={id}&type=lrc`
-
-#### Audio Quality Options
-- `128k` - Standard quality (128kbps)
-- `320k` - High quality (320kbps) - **Default**
-- `flac` - Lossless FLAC (~1000kbps)
-- `flac24bit` - Hi-Res FLAC 24bit (~1400kbps)
-
-#### Auto-Switch Feature
-The application implements automatic source switching when audio fails to load:
-1. Tries next available quality level
-2. If all qualities fail on current platform, searches QQ Music for the same song
-3. Falls back to alternative platform if available
-
-### Backup & Recovery
-- `music-player-backup.html` contains a backup copy (original version before 2026-01-17 optimization)
-- `music-player-enhanced.html` may contain the enhanced version with additional features
-- To restore: copy backup to main file or vice versa
-- Current version includes all features up to 2026-01-17
-
-**Rollback Command:**
+**Direct file access (quick testing):**
 ```bash
-# Backup current version first
-cp music-player.html music-player-optimized.html
+# Single-file version (production)
+start index.html  # Windows
+open index.html   # macOS
+xdg-open index.html  # Linux
 
-# Restore backup version
-cp music-player-backup.html music-player.html
+# Separated version (development)
+start index-separate.html  # Windows
+open index-separate.html   # macOS
+xdg-open index-separate.html  # Linux
 ```
 
-## API Documentation
-See `tunefree-api.md` for complete TuneHub API documentation including:
-- Full endpoint specifications
-- Response format examples
-- Platform statistics
-- Advanced features (auto-switch, aggregate search)
-- Rate limiting and health checks
+**With local server (recommended for CORS testing):**
+```bash
+# Python 3
+python -m http.server 8000
 
-## Performance Optimizations (2026-01-17 Update)
+# Node.js with http-server
+npx http-server
 
-### Parallel Preloading
-**Before:** Audio URLs for all quality levels loaded sequentially (~800ms)
-**After:** Parallel loading using `Promise.allSettled()` (~200ms)
-**Improvement:** ~75% faster (4x speedup)
-
-```javascript
-// Optimized: Parallel loading
-const preloadPromises = QUALITIES.map(async (quality) => {
-    const response = await fetch(url, { method: 'HEAD' });
-    audioUrlMap[quality] = response.url;
-});
-await Promise.allSettled(preloadPromises);
+# Access at http://localhost:8000/index-separate.html (development)
+# Access at http://localhost:8000/index.html (production)
 ```
 
-### Throttled Lyrics Updates
-**Before:** Lyrics highlighting updated every frame
-**After:** 50ms throttle to reduce DOM operations
-**Improvement:** ~60% reduction in DOM operations, smoother playback
+### Vercel Deployment
+```bash
+# Install Vercel CLI
+npm i -g vercel
 
-### Code Deduplication
-**Before:** ~200 lines of duplicate download logic
-**After:** Single `downloadFile()` function reused across all download operations
-**Improvement:** -200 lines of code, better maintainability
+# Deploy to Vercel
+vercel
 
-### Constant Extraction
-**Before:** Quality names, qualities array, and platform names scattered throughout code
-**After:** Centralized constants at top of script
-**Improvement:** Easier configuration, better maintainability
+# Link to existing project
+vercel --link
 
-## New Features (2026-01-17 Update)
+# Deploy with environment variables
+vercel --prod
+```
 
-### Real-time Quality Switching
-- **Preserves Playback:** Maintains current position when switching qualities
-- **State Preservation:** Automatically keeps play/pause state
-- **Visual Feedback:** Shows "⚡ 切换中" status during switching
-- **Smooth Transition:** Seamless audio source switching without interruption
-- **Error Recovery:** Automatic fallback to next quality on failure
+### Git Operations
+```bash
+# Commit changes
+git add .
+git commit -m "feat: description"
 
-### Volume Control
-- **UI:** Slider with visual percentage display (0-100%)
-- **Persistence:** Saves preference to localStorage
-- **Default:** 80% volume
-- **Styling:** Custom slider with gradient thumb and hover effects
+# Push to GitHub
+git push origin main
+```
 
-### Improved Error Handling
-- More detailed error messages with contextual information
-- Better form validation against available options
-- Download pre-checks to prevent errors
+## API Integration
 
-## Testing
+### Proxy Function
+The API proxy (`api/index.js`) handles:
+- Forwarding requests to TuneHub API
+- CORS headers for cross-origin requests
+- Audio file redirection
+- Error handling
 
-### Quick Test Commands
-No build/test commands required. Simply open in browser and test manually.
+### Quality Management
+- **Preloading:** Parallel loading of all quality levels using `Promise.allSettled()`
+- **Switching:** Real-time quality switching with progress preservation
+- **Fallback:** Automatic fallback to next quality level on failure
 
-### Test Checklist
-See `TEST_CHECKLIST.md` for comprehensive testing guide covering:
-- Search functionality (all platforms)
-- Playback controls (play/pause, seek, skip)
-- Quality switching (all 4 quality levels)
-- Volume control (0%, 50%, 100%, persistence)
-- Lyrics synchronization
-- Download functions (cover, lyrics, audio, combinations)
-- Error handling (network errors, missing data)
-- Performance (preloading speed, playback smoothness)
-- Browser compatibility (Chrome, Firefox, Safari, Edge)
-- Responsive design (desktop, tablet, mobile)
+### Download Functions
+All downloads use a common `downloadFile()` helper:
+- `downloadCurrentQualityAudio()` - Downloads current quality audio
+- `downloadLyrics()` - Downloads LRC lyrics file
+- `downloadCover()` - Downloads album cover image
+- `downloadAll()` - Downloads audio + lyrics + cover
 
-### Performance Testing
-- **Preloading:** Search a song and check Network tab for parallel requests
-- **Lyrics:** Play a song with lyrics and observe smooth scrolling
-- **Memory:** Play multiple songs and check for memory leaks
+## Key Implementation Details
 
-## Error Handling
+### Search & Playback
+- `searchMusic()` - Searches music using platform or aggregate search
+- `loadSongInfo()` - Fetches metadata, cover, lyrics, and preloads audio URLs
+- `displayLyrics()` - Renders synchronized lyrics with 50ms throttle
 
-### Common Issues & Solutions
-1. **Network errors** - Check API availability at `https://music-dl.sayqz.com`
-2. **Missing album covers** - Displays placeholder emoji (🎵)
-3. **Missing lyrics** - Shows "暂无歌词" message
-4. **Audio loading failures** - Triggers quality fallback automatically
-5. **Invalid saved preferences** - Validated on load against available options
+### State Management
+- `localStorage` persistence for volume, theme, playlists, statistics
+- Real-time updates with event listeners
+- Play mode management (normal, single, loop, shuffle)
+
+### V2.0 Features
+- Dark/Light theme switching
+- Playlist management system
+- Play statistics tracking
+- Smart recommendations
+- Notification system
+- Data export/import
+
+## Development Notes
+
+### File Modifications
+
+**Development Workflow:**
+1. **Make changes in separated version** (`index-separate.html`, `css/style.css`, `js/player.js`)
+2. **Test thoroughly** using the separated version
+3. **Sync changes to single-file version** (`index.html`) when ready for deployment
+
+**CSS Changes:**
+- **Separated version:** Edit `css/style.css`
+- **Single-file version:** Update embedded `<style>` tag (lines 7-1200)
+
+**JavaScript Changes:**
+- **Separated version:** Edit `js/player.js`
+- **Single-file version:** Update embedded `<script>` content
+
+**API Changes:** Update `API_BASE` constant in JavaScript for different environments
+- Local development: `https://music-dl.sayqz.com/api/...`
+- Deployed: `/api/?type=aggregateSearch&keyword=...`
+
+**Feature Additions:** Use existing `downloadFile()` helper for new download features
 
 ### Browser Compatibility
 - Requires modern browser with ES6+ support
-- Uses `fetch` API, `async/await`, and `URL.createObjectURL`
-- CSS uses `backdrop-filter` for glassmorphism (supported in most modern browsers)
+- Uses `fetch`, `async/await`, `URL.createObjectURL`
+- CSS `backdrop-filter` for glassmorphism effects
 
-## File System Considerations
-- Download functions use `sanitizeFileName()` to remove illegal characters
-- File names format: `{songName}_{artistName}.{ext}`
-- Maximum filename length: 100 characters
+### Performance Optimizations
+- Parallel API preloading (~75% faster)
+- Throttled lyrics updates
+- Code deduplication with shared helpers
 
-## Optimization Rollback
-If needed, you can rollback to the backup version:
+## Testing
 
-```bash
-# Backup current version
-cp music-player.html music-player-optimized.html
+### Manual Testing Checklist
+- Search functionality (all platforms)
+- Playback controls (play/pause, seek, skip)
+- Quality switching (all 4 levels)
+- Volume control (0-100%, persistence)
+- Lyrics synchronization
+- Download functions (audio, lyrics, cover)
+- Error handling (network errors, missing data)
+- Responsive design (desktop/mobile)
 
-# Restore backup version
-cp music-player-backup.html music-player.html
-```
+### Environment Testing
+- Local: Direct file access with CORS issues
+- Deployed: Uses proxy for CORS-free requests
+- Different browsers: Chrome, Firefox, Safari, Edge
 
-## Future Development Suggestions
+## Deployment Configuration
 
-### Short-term (1-2 weeks)
-- **Play modes:** Single repeat, list repeat, shuffle
-- **Play history:** Save recently played songs
-- **Custom playlists:** Create and manage playlists
+### Vercel Specific
+The `vercel.json` configures:
+- API route: `/api/*` → `/api/index.js`
+- Build command: `vercel build` with Node.js runtime
+- Environment: Automatic SSL, global CDN
 
-### Medium-term (1 month)
-- **Enhanced shortcuts:** Ctrl+Space, Ctrl+Arrows for volume
-- **Lyrics editing:** Edit lyrics and adjust timing
-- **Third-party lyrics:** Fetch from additional sources
+### Environment Variables
+For production deployment, consider setting:
+- `API_BASE` - Override for different API endpoints
+- `NODE_ENV` - Set to 'production' for optimized builds
 
-### Long-term (3 months)
-- **Caching:** Cache search results and audio URLs
-- **Offline support:** Offline playback capability
-- **Dark mode:** Theme switching
-- **Export/Import:** Playlist export/import
+## Key Architectural Patterns
 
-## License & Disclaimer
-This is a personal music player application. The TuneHub API documentation includes a disclaimer stating the API is for personal learning/research use only, not for commercial or illegal purposes.
+### State Management
+- **LocalStorage persistence**: Volume, theme, playlists, statistics stored in browser
+- **Event-driven updates**: Real-time UI updates through event listeners
+- **Centralized state**: Core variables (`audio`, `currentSong`, `songs`, `lyricsData`) managed globally
 
-## Related Documentation Files
-- `tunefree-api.md` - Complete TuneHub API documentation
-- `TEST_CHECKLIST.md` - Comprehensive test checklist
-- `README.md` - Project documentation
-- `README-V2.md` - V2.0 feature documentation
+### API Integration Strategy
+- **Dual-mode operation**: Direct API calls for local dev, proxy for deployed
+- **Parallel preloading**: All quality levels loaded simultaneously with `Promise.allSettled()`
+- **Graceful degradation**: Automatic fallback to next quality level on failure
+
+### File Synchronization Strategy
+- **Development-first approach**: Changes made in separated files first
+- **Manual synchronization**: Single-file version updated from separated components
+- **Version control**: Multiple backup files preserve development history
+
+## Common Issues
+
+### CORS Errors
+- Deployed version uses proxy to resolve
+- Local development may need local server (`python -m http.server 8000`)
+- Third-party API may block certain domains
+
+### Audio Loading
+- Quality fallback mechanism automatically handles failures
+- Check network tab for preloading requests
+- Verify API endpoint availability
+
+### File Downloads
+- `sanitizeFileName()` removes illegal characters
+- Downloads work in all modern browsers
+- File naming format: `{songName}_{artistName}.{ext}`
+
+### Development Workflow Issues
+- **CSS/JS changes not reflected**: Ensure you're editing the correct file version
+- **API calls failing**: Check `API_BASE` constant matches environment
+- **State not persisting**: Verify localStorage is enabled in browser
+
+## Important Reminders for Development
+
+### When Making Changes
+1. **Always start with separated version** (`index-separate.html`, `css/style.css`, `js/player.js`)
+2. **Test changes thoroughly** before syncing to single-file version
+3. **Update both versions** when changes are finalized
+4. **Preserve backup files** - they contain valuable development history
+
+### File Selection Guide
+| Task | Recommended File | Notes |
+|------|-----------------|-------|
+| Production deployment | `index.html` | Single file, easiest to host |
+| Development & debugging | `index-separate.html` | Separated files, easier to modify |
+| Learning code structure | `music-player.html` | Detailed comments, best for understanding |
+| Testing API proxy | `test-proxy.html` | Isolated API testing |
+
+### Key Constants to Check
+- `API_BASE`: Determines API endpoint (local vs deployed)
+- `QUALITIES`: Array of available audio quality levels
+- `PLATFORMS`: Object mapping platform codes to display names
+- `PLAY_MODES`: Available playback modes (normal, single, loop, shuffle)

@@ -20,7 +20,6 @@ const API_BASE = 'https://music-dl.sayqz.com';
     let audioContext;
     let analyser;
     let dataArray;
-    let isMiniPlayer = false;
     let currentPlayMode = 'normal';
     let playlists = {};
     let currentPlaylist = null; // 当前选中的歌单
@@ -126,58 +125,7 @@ const API_BASE = 'https://music-dl.sayqz.com';
         }
     }
 
-    // 迷你播放器切换
-    function toggleMiniPlayer() {
-        const playerPanel = document.getElementById('playerPanel');
-        const miniPlayer = document.getElementById('miniPlayer');
-        const container = document.querySelector('.container');
-        const miniPlayerToggle = document.getElementById('miniPlayerToggle');
 
-        if (isMiniPlayer) {
-            // 返回正常模式
-            isMiniPlayer = false;
-            miniPlayer.style.display = 'none';
-            playerPanel.style.display = 'block';
-            container.style.display = 'block';
-            miniPlayerToggle.innerHTML = '<span>⬇️</span>';
-            showNotification('已返回正常播放器', '↩️');
-        } else {
-            // 进入迷你模式
-            isMiniPlayer = true;
-            miniPlayer.style.display = 'block';
-            playerPanel.style.display = 'none';
-            container.style.display = 'none';
-            miniPlayerToggle.innerHTML = '<span>⬆️</span>';
-            updateMiniPlayer();
-            showNotification('已切换到迷你播放器', '⬇️');
-        }
-    }
-
-    // 更新迷你播放器显示
-    function updateMiniPlayer() {
-        if (!isMiniPlayer) return;
-
-        const cover = document.getElementById('miniPlayerCover');
-        const title = document.getElementById('miniPlayerTitle');
-        const artist = document.getElementById('miniPlayerArtist');
-        const progressBar = document.getElementById('miniProgressBar');
-
-        if (cover) {
-            if (currentSongInfo?.pic) {
-                cover.innerHTML = `<img src="${currentSongInfo.pic}" alt="Cover" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">`;
-            } else {
-                cover.innerHTML = '<div class="placeholder" style="font-size: 24px;">🎵</div>';
-            }
-        }
-
-        if (title) title.textContent = currentSongInfo?.name || '未播放';
-        if (artist) artist.textContent = currentSongInfo?.artist || '-';
-
-        if (progressBar && audio) {
-            const progress = (audio.currentTime / audio.duration) * 100 || 0;
-            progressBar.style.width = `${progress}%`;
-        }
-    }
 
     // 初始化音频可视化
     function initVisualizer() {
@@ -1149,13 +1097,6 @@ const API_BASE = 'https://music-dl.sayqz.com';
         document.getElementById('currentTime').textContent = formatTime(currentTime);
         updateLyricsHighlight();
 
-        // 更新迷你播放器进度
-        if (isMiniPlayer) {
-            const miniProgressBar = document.querySelector('.mini-player-progress-bar');
-            if (miniProgressBar) {
-                miniProgressBar.style.width = `${percentage}%`;
-            }
-        }
     }
 
     // 跳转到指定位置
