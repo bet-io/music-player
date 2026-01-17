@@ -1,4 +1,4 @@
-const TUNEHUB_API_BASE = 'https://music-dl.sayqz.com/api';
+const TUNEHUB_API_BASE = 'https://music-dl.sayqz.com';
 
 export default async function handler(req, res) {
     // 处理OPTIONS预检请求
