@@ -1808,6 +1808,28 @@
             showNotification('歌曲已从歌单移除', '✅');
         }
 
+        // 从歌单播放歌曲（新增功能）
+        function playFromPlaylist(playlistName, songId) {
+            const playlist = playlists[playlistName];
+            if (!playlist) return;
+
+            const song = playlist.songs.find(s => s.id === songId);
+            if (!song) {
+                showNotification('歌曲不存在', '❌');
+                return;
+            }
+
+            // 设置当前搜索结果为歌单中的歌曲，以便播放器正常工作
+            songs = playlist.songs;
+
+            // 找到歌曲在歌单中的索引
+            const index = playlist.songs.findIndex(s => s.id === songId);
+
+            // 播放歌曲
+            playSong(index);
+            showNotification(`正在播放: ${song.name}`, '🎵');
+        }
+
         // 保存歌单
         function savePlaylists() {
             localStorage.setItem('playlists', JSON.stringify(playlists));
@@ -1861,15 +1883,44 @@
                     songList.style.background = 'rgba(0, 0, 0, 0.03)';
                     songList.style.borderRadius = '8px';
 
-                    songList.innerHTML = playlist.songs.map(song => `
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid rgba(0, 0, 0, 0.05);">
-                            <div style="flex: 1;">
-                                <div style="font-size: 14px;">${song.name}</div>
-                                <div style="font-size: 12px; color: #888;">${song.artist || '未知歌手'}</div>
+                    playlist.songs.forEach((song, songIndex) => {
+                        const songItem = document.createElement('div');
+                        songItem.style.cssText = `
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                            padding: 8px;
+                            margin-bottom: 5px;
+                            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+                            cursor: pointer;
+                            transition: all 0.2s;
+                            border-radius: 6px;
+                        `;
+                        songItem.onmouseenter = function() {
+                            this.style.background = 'rgba(102, 126, 234, 0.1)';
+                        };
+                        songItem.onmouseleave = function() {
+                            this.style.background = 'transparent';
+                        };
+                        songItem.onclick = () => playFromPlaylist(name, song.id);
+
+                        songItem.innerHTML = `
+                            <div style="flex: 1; display: flex; align-items: center; gap: 10px;">
+                                <span style="font-size: 18px;">▶️</span>
+                                <div>
+                                    <div style="font-size: 14px; font-weight: 500;">${song.name}</div>
+                                    <div style="font-size: 12px; color: #888;">${song.artist || '未知歌手'}</div>
+                                </div>
                             </div>
-                            <button onclick="event.stopPropagation(); removeSongFromPlaylist('${name}', '${song.id}')" style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 16px;">×</button>
-                        </div>
-                    `).join('');
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <button onclick="event.stopPropagation(); removeSongFromPlaylist('${name}', '${song.id}')"
+                                        style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 16px; padding: 4px; border-radius: 4px;"
+                                        title="从歌单移除">×</button>
+                            </div>
+                        `;
+
+                        songList.appendChild(songItem);
+                    });
 
                     item.appendChild(songList);
                 }
