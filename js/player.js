@@ -1,7 +1,6 @@
 // 配置常量
-// 自动检测环境：如果是本地开发，使用完整API URL；如果是部署环境，使用相对路径
-const isLocalDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.protocol === 'file:';
-const API_BASE = isLocalDevelopment ? 'https://music-dl.sayqz.com' : '';
+// 客户端直连TuneHub API，避免服务端代理问题
+const API_BASE = 'https://music-dl.sayqz.com';
     const QUALITIES = ['128k', '320k', 'flac', 'flac24bit'];
     const QUALITY_NAMES = {
         '128k': '标准 128k',
