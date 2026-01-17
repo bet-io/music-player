@@ -75,6 +75,15 @@ const API_BASE = 'https://music-dl.sayqz.com';
             document.getElementById('albumCover')?.classList.remove('playing');
         });
 
+        audio.addEventListener('error', async function() {
+            console.error('音频加载错误:', audio.error);
+            if (audio.error && audio.error.code === 4) {
+                // MEDIA_ERR_SRC_NOT_SUPPORTED
+                console.log('音频源不支持，尝试回退机制...');
+                await tryNextQuality();
+            }
+        });
+
         initQuality();
         initVolume();
 
@@ -899,10 +908,17 @@ const API_BASE = 'https://music-dl.sayqz.com';
     async function loadAudio(url) {
         try {
             audio.src = url;
-            audio.play();
+
+            // 使用Promise来等待音频加载或错误
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+                await playPromise;
+            }
         } catch (error) {
-            console.error('加载音频失败:', error);
-            showError('加载音频失败');
+            console.error('加载音频失败:', error, 'URL:', url);
+
+            // 尝试下一个音质
+            showError('加载音频失败，正在尝试其他音质...');
             await tryNextQuality();
         }
     }
