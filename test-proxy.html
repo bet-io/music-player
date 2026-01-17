@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>代理测试</title>
+</head>
+<body>
+    <h1>代理 API 测试</h1>
+    <button onclick="testProxy()">测试搜索功能</button>
+    <div id="result"></div>
+
+    <script>
+        async function testProxy() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '测试中...';
+
+            try {
+                const response = await fetch('/api/?type=aggregateSearch&keyword=周杰伦');
+                const data = await response.json();
+
+                if (data && data.success) {
+                    resultDiv.innerHTML = '<p style="color: green;">✅ 代理工作正常！找到 ' + data.data.length + ' 首歌曲</p>';
+                } else {
+                    resultDiv.innerHTML = '<p style="color: red;">❌ API 返回错误: ' + JSON.stringify(data) + '</p>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '<p style="color: red;">❌ 请求失败: ' + error.message + '</p>';
+            }
+        }
+    </script>
+</body>
+</html>

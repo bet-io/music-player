@@ -3,10 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TuneHub 音乐播放器 - 在线听歌</title>
-    <meta name="description" content="TuneHub 是一个功能强大的在线音乐播放器，支持网易云音乐、酷我音乐、QQ音乐等多平台搜索播放。">
-    <meta name="keywords" content="音乐播放器,在线听歌,网易云音乐,酷我音乐,QQ音乐,TuneHub">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎵</text></svg>">
+    <title>TuneHub 音乐播放器</title>
     <style>
         * {
             margin: 0;
@@ -126,6 +123,97 @@
             }
         }
 
+        /* 迷你播放器样式 */
+        .mini-player {
+            position: fixed !important;
+            bottom: 20px;
+            right: 20px;
+            width: 320px !important;
+            max-height: 120px !important;
+            z-index: 1000;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .mini-player-content {
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .mini-player-cover {
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            flex-shrink: 0;
+        }
+
+        .mini-player-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .mini-player-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .mini-player-artist {
+            font-size: 12px;
+            color: #888;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .mini-player-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .mini-player-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .mini-btn {
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .mini-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .mini-player-progress {
+            width: 100%;
+            height: 3px;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .mini-player-progress-bar {
+            height: 100%;
+            background: #667eea;
+            width: 0;
+            transition: width 0.1s;
+        }
+
+        body.dark-mode .mini-player-progress {
+            background: rgba(255, 255, 255, 0.1);
+        }
 
         /* 音频频谱可视化 */
         .visualizer-container {
@@ -1138,6 +1226,9 @@
                     <button id="themeToggle" class="theme-toggle" onclick="toggleTheme()">
                         <span id="themeIcon">🌙</span>
                     </button>
+                    <button id="miniPlayerToggle" class="mini-player-toggle" onclick="toggleMiniPlayer()">
+                        <span>⬇️</span>
+                    </button>
                 </div>
             </div>
             <p>搜索 · 播放 · 下载</p>
@@ -1185,6 +1276,28 @@
                     <canvas class="visualizer" id="visualizer"></canvas>
                 </div>
 
+                <!-- 迷你播放器（默认隐藏） -->
+                <div class="mini-player" id="miniPlayer" style="display: none;">
+                    <div class="mini-player-content">
+                        <div class="mini-player-cover" id="miniPlayerCover">
+                            <div class="placeholder">🎵</div>
+                        </div>
+                        <div class="mini-player-info">
+                            <div class="mini-player-title" id="miniPlayerTitle">未播放</div>
+                            <div class="mini-player-artist" id="miniPlayerArtist">-</div>
+                        </div>
+                        <div class="mini-player-controls">
+                            <div class="mini-player-buttons">
+                                <button class="mini-btn" onclick="previousSong()">⏮</button>
+                                <button class="mini-btn play-btn" onclick="togglePlay()" id="miniPlayBtn">▶</button>
+                                <button class="mini-btn" onclick="nextSong()">⏭</button>
+                            </div>
+                            <div class="mini-player-progress">
+                                <div class="mini-player-progress-bar" id="miniProgressBar"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="player-panel" id="playerPanel">
                     <div class="now-playing-section">
@@ -1356,6 +1469,7 @@
         let audioContext;
         let analyser;
         let dataArray;
+        let isMiniPlayer = false;
         let currentPlayMode = 'normal';
         let playlists = {};
         let currentPlaylist = null; // 当前选中的歌单
@@ -1461,6 +1575,58 @@
             }
         }
 
+        // 迷你播放器切换
+        function toggleMiniPlayer() {
+            const playerPanel = document.getElementById('playerPanel');
+            const miniPlayer = document.getElementById('miniPlayer');
+            const container = document.querySelector('.container');
+            const miniPlayerToggle = document.getElementById('miniPlayerToggle');
+
+            if (isMiniPlayer) {
+                // 返回正常模式
+                isMiniPlayer = false;
+                miniPlayer.style.display = 'none';
+                playerPanel.style.display = 'block';
+                container.style.display = 'block';
+                miniPlayerToggle.innerHTML = '<span>⬇️</span>';
+                showNotification('已返回正常播放器', '↩️');
+            } else {
+                // 进入迷你模式
+                isMiniPlayer = true;
+                miniPlayer.style.display = 'block';
+                playerPanel.style.display = 'none';
+                container.style.display = 'none';
+                miniPlayerToggle.innerHTML = '<span>⬆️</span>';
+                updateMiniPlayer();
+                showNotification('已切换到迷你播放器', '⬇️');
+            }
+        }
+
+        // 更新迷你播放器显示
+        function updateMiniPlayer() {
+            if (!isMiniPlayer) return;
+
+            const cover = document.getElementById('miniPlayerCover');
+            const title = document.getElementById('miniPlayerTitle');
+            const artist = document.getElementById('miniPlayerArtist');
+            const progressBar = document.getElementById('miniProgressBar');
+
+            if (cover) {
+                if (currentSongInfo?.pic) {
+                    cover.innerHTML = `<img src="${currentSongInfo.pic}" alt="Cover" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">`;
+                } else {
+                    cover.innerHTML = '<div class="placeholder" style="font-size: 24px;">🎵</div>';
+                }
+            }
+
+            if (title) title.textContent = currentSongInfo?.name || '未播放';
+            if (artist) artist.textContent = currentSongInfo?.artist || '-';
+
+            if (progressBar && audio) {
+                const progress = (audio.currentTime / audio.duration) * 100 || 0;
+                progressBar.style.width = `${progress}%`;
+            }
+        }
 
         // 初始化音频可视化
         function initVisualizer() {
@@ -1745,8 +1911,8 @@
                             </div>
                             <div style="display: flex; gap: 8px; align-items: center;">
                                 <button onclick="event.stopPropagation(); removeSongFromPlaylist('${name}', '${song.id}')"
-                                        style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 16px; padding: 4px; border-radius: 4px;"
-                                        title="从歌单移除">×</button>
+                                    style="background: none; border: none; color: #ef4444; cursor: pointer; font-size: 16px; padding: 4px; border-radius: 4px;"
+                                    title="从歌单移除">×</button>
                             </div>
                         `;
 
@@ -2432,6 +2598,13 @@
             document.getElementById('currentTime').textContent = formatTime(currentTime);
             updateLyricsHighlight();
 
+            // 更新迷你播放器进度
+            if (isMiniPlayer) {
+                const miniProgressBar = document.querySelector('.mini-player-progress-bar');
+                if (miniProgressBar) {
+                    miniProgressBar.style.width = `${percentage}%`;
+                }
+            }
         }
 
         // 跳转到指定位置
@@ -2892,18 +3065,5 @@
             }
         });
     </script>
-
-    <!-- 页脚信息 -->
-    <footer style="text-align: center; padding: 20px; margin-top: 40px; color: #888; font-size: 12px;">
-        <p>🎵 TuneHub 音乐播放器 V2.0</p>
-        <p>支持网易云音乐、酷我音乐、QQ音乐等多平台搜索播放</p>
-        <p style="margin-top: 10px;">
-            <a href="https://github.com/bet-io/music-player" target="_blank" style="color: #667eea; text-decoration: none;">GitHub</a>
-            <span style="margin: 0 10px;">|</span>
-            <a href="README.md" target="_blank" style="color: #667eea; text-decoration: none;">使用说明</a>
-            <span style="margin: 0 10px;">|</span>
-            <span id="versionInfo">V2.0</span>
-        </p>
-    </footer>
 </body>
 </html>
