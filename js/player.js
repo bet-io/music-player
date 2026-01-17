@@ -66,6 +66,7 @@ console.log('- API_BASE:', API_BASE);
     let currentSongInfo = null;
     let currentQuality = '320k';
     let audioUrlMap = {};
+    let invalidAudioQualities = new Set(); // 跟踪已知无效的音质
     let currentPlatform = 'netease';
     let lastLyricsIndex = -1;
     let lyricsUpdateTimer = null;
@@ -119,6 +120,12 @@ console.log('- API_BASE:', API_BASE);
                 // 对于网络错误或格式不支持错误，尝试下一个音质
                 if (errorCode === 2 || errorCode === 4) {
                     console.log('尝试切换到下一个音质...');
+                    // 标记当前音质为无效，避免再次尝试
+                    if (currentQuality) {
+                        console.log(`标记音质 ${currentQuality} 为无效`);
+                        invalidAudioQualities.add(currentQuality);
+                        delete audioUrlMap[currentQuality];
+                    }
                     await tryNextQuality();
                 } else if (errorCode === 1) {
                     // 加载被中止，可能是用户操作，不需要自动重试
@@ -126,11 +133,23 @@ console.log('- API_BASE:', API_BASE);
                 } else {
                     // 解码错误或其他错误，也尝试下一个音质
                     console.log('尝试切换到下一个音质...');
+                    // 标记当前音质为无效，避免再次尝试
+                    if (currentQuality) {
+                        console.log(`标记音质 ${currentQuality} 为无效`);
+                        invalidAudioQualities.add(currentQuality);
+                        delete audioUrlMap[currentQuality];
+                    }
                     await tryNextQuality();
                 }
             } else {
                 // 没有错误对象，但事件触发了，尝试下一个音质
                 console.log('音频错误事件触发，尝试下一个音质...');
+                // 标记当前音质为无效，避免再次尝试
+                if (currentQuality) {
+                    console.log(`标记音质 ${currentQuality} 为无效`);
+                    invalidAudioQualities.add(currentQuality);
+                    delete audioUrlMap[currentQuality];
+                }
                 await tryNextQuality();
             }
         });
@@ -991,8 +1010,20 @@ console.log('- API_BASE:', API_BASE);
                 currentSongInfo = infoData.data;
                 displayCover(currentSongInfo.pic);
                 loadLyrics(currentSongInfo);
-                await preloadMultipleQualities(platform, song.id);
-                await loadAudio(getAudioUrl(currentQuality, platform, song.id));
+
+                // 立即开始加载当前音质的音频
+                const initialAudioUrl = getAudioUrl(currentQuality, platform, song.id);
+                console.log(`立即加载音频: ${initialAudioUrl}`);
+
+                // 开始后台预加载其他音质（不等待）
+                preloadMultipleQualities(platform, song.id).then(() => {
+                    console.log('后台预加载完成');
+                }).catch(error => {
+                    console.error('后台预加载失败:', error);
+                });
+
+                // 加载初始音频
+                await loadAudio(initialAudioUrl);
             } else {
                 showError('获取歌曲信息失败');
             }
@@ -1445,23 +1476,116 @@ console.log('- API_BASE:', API_BASE);
         return 'netease';
     }
 
-    // 预加载多个音质的URL（直接使用原始API URL）
+    // 预加载多个音质的URL，测试URL有效性
     async function preloadMultipleQualities(platform, songId) {
         audioUrlMap = {};
+        invalidAudioQualities.clear(); // 清空无效音质集合
 
-        // 直接构造原始API URL，不进行网络请求
-        QUALITIES.forEach((quality) => {
+        console.log(`开始预加载音质: ${platform} - ${songId}`);
+
+        // 并行测试所有音质URL
+        const qualityPromises = QUALITIES.map(async (quality) => {
             const url = `${API_BASE}/?source=${platform}&id=${songId}&type=url&br=${quality}`;
-            audioUrlMap[quality] = url;
+
+            try {
+                console.log(`测试音质 ${quality}: ${url}`);
+                // 使用GET请求但只读取头部信息，因为某些服务器可能不支持HEAD
+                const testResponse = await fetch(url, {
+                    method: 'GET',
+                    headers: { 'Range': 'bytes=0-0' } // 只请求第一个字节来检查内容类型
+                });
+
+                if (testResponse.ok || testResponse.status === 206) {
+                    const contentType = testResponse.headers.get('content-type');
+                    // 检查内容类型
+                    const isAudio = contentType && (
+                        contentType.includes('audio/') ||
+                        contentType.includes('application/octet-stream') ||
+                        contentType.includes('video/') ||
+                        contentType.includes('mpeg') ||
+                        contentType.includes('flac') ||
+                        contentType.includes('ogg') ||
+                        contentType.includes('wav')
+                    );
+
+                    const isError = contentType && (
+                        contentType.includes('application/json') ||
+                        contentType.includes('text/') ||
+                        contentType.includes('application/javascript')
+                    );
+
+                    if (isAudio && !isError) {
+                        console.log(`✓ 音质 ${quality} 可用 (Content-Type: ${contentType})`);
+                        audioUrlMap[quality] = url;
+                        return { quality, valid: true, url };
+                    } else {
+                        console.log(`✗ 音质 ${quality} 返回非音频内容: ${contentType}`);
+                        invalidAudioQualities.add(quality);
+                        return { quality, valid: false, url, reason: `非音频内容: ${contentType}` };
+                    }
+                } else {
+                    console.log(`✗ 音质 ${quality} HTTP错误: ${testResponse.status}`);
+                    invalidAudioQualities.add(quality);
+                    return { quality, valid: false, url, reason: `HTTP ${testResponse.status}` };
+                }
+            } catch (error) {
+                console.log(`✗ 音质 ${quality} 测试失败:`, error.message);
+                invalidAudioQualities.add(quality);
+                return { quality, valid: false, url, reason: error.message };
+            }
         });
+
+        const results = await Promise.allSettled(qualityPromises);
+
+        // 统计结果
+        const validCount = Object.keys(audioUrlMap).length;
+        console.log(`预加载完成: ${validCount}/${QUALITIES.length} 个音质可用`);
+
+        if (validCount === 0) {
+            console.warn('警告: 所有音质都不可用');
+        }
     }
 
-    // 获取音频URL，如果没有预加载则返回原始URL
-    function getAudioUrl(quality, platform, songId) {
+    // 获取音频URL，优先使用预加载的有效URL
+    function getAudioUrl(quality, platform, songId, depth = 0) {
+        // 防止无限递归
+        if (depth > QUALITIES.length) {
+            console.error(`递归深度超过限制: ${depth}`);
+            return `${API_BASE}/?source=${platform}&id=${songId}&type=url&br=${quality}`;
+        }
+
+        // 检查音质是否已知无效
+        if (invalidAudioQualities.has(quality)) {
+            console.log(`音质 ${quality} 已知无效，尝试下一个音质`);
+            // 查找下一个可用的音质
+            const currentIndex = QUALITIES.indexOf(quality);
+            for (let i = currentIndex + 1; i < QUALITIES.length; i++) {
+                const nextQuality = QUALITIES[i];
+                if (!invalidAudioQualities.has(nextQuality)) {
+                    console.log(`尝试音质 ${nextQuality} 替代`);
+                    return getAudioUrl(nextQuality, platform, songId, depth + 1);
+                }
+            }
+            console.warn(`所有更高质量的音质都已知无效`);
+        }
+
+        // 如果预加载中有这个音质的有效URL，返回它
         if (audioUrlMap[quality]) {
             return audioUrlMap[quality];
         }
-        // 如果预加载失败，返回原始URL
+
+        // 如果预加载中没有这个音质，尝试查找下一个可用的音质
+        const currentIndex = QUALITIES.indexOf(quality);
+        for (let i = currentIndex; i < QUALITIES.length; i++) {
+            const nextQuality = QUALITIES[i];
+            if (audioUrlMap[nextQuality]) {
+                console.log(`音质 ${quality} 不可用，使用 ${nextQuality} 替代`);
+                return audioUrlMap[nextQuality];
+            }
+        }
+
+        // 如果没有预加载的有效URL，返回原始URL（最后的手段）
+        console.warn(`所有音质都不可用，返回原始URL: ${quality}`);
         return `${API_BASE}/?source=${platform}&id=${songId}&type=url&br=${quality}`;
     }
 
@@ -1577,14 +1701,24 @@ console.log('- API_BASE:', API_BASE);
         }
     }
 
-    // 尝试下一个可用音质
+    // 尝试下一个可用音质，跳过已知无效的音质
     async function tryNextQuality() {
         const currentIndex = QUALITIES.indexOf(currentQuality);
         const platform = getSongPlatform(currentSong);
 
+        console.log(`尝试下一个音质，当前音质: ${currentQuality} (索引: ${currentIndex})`);
+
         for (let i = currentIndex + 1; i < QUALITIES.length; i++) {
             const nextQuality = QUALITIES[i];
+
+            // 检查这个音质是否已知无效
+            if (invalidAudioQualities.has(nextQuality)) {
+                console.log(`跳过已知无效的音质: ${nextQuality}`);
+                continue;
+            }
+
             const nextUrl = getAudioUrl(nextQuality, platform, currentSong.id);
+            console.log(`尝试音质 ${nextQuality}: ${nextUrl}`);
 
             // 尝试加载这个音质
             try {
@@ -1592,9 +1726,13 @@ console.log('- API_BASE:', API_BASE);
                 document.getElementById('currentQuality').textContent = `当前音质: ${QUALITY_NAMES[nextQuality]}`;
                 document.getElementById('qualityChange').value = nextQuality;
                 await loadAudio(nextUrl);
+                console.log(`成功切换到音质: ${nextQuality}`);
                 return;
             } catch (error) {
                 console.log(`尝试音质 ${nextQuality} 失败:`, error);
+                // 标记这个音质为无效，避免再次尝试
+                invalidAudioQualities.add(nextQuality);
+                delete audioUrlMap[nextQuality];
             }
         }
 
