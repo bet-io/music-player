@@ -1,7 +1,13 @@
 // 配置常量
 // 根据环境选择API地址
 const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '';
-const API_BASE = isLocalhost ? 'https://music-dl.sayqz.com/api' : '/api';
+const isVercel = window.location.hostname.includes('vercel.app') || window.location.hostname.includes('.now.sh');
+const API_BASE = isLocalhost && !isVercel ? 'https://music-dl.sayqz.com/api' : '/api';
+console.log('API配置调试:');
+console.log('- 当前主机名:', window.location.hostname);
+console.log('- 是否为本地:', isLocalhost);
+console.log('- 是否为Vercel:', isVercel);
+console.log('- API_BASE:', API_BASE);
     const QUALITIES = ['128k', '320k', 'flac', 'flac24bit'];
     const QUALITY_NAMES = {
         '128k': '标准 128k',
@@ -794,6 +800,12 @@ const API_BASE = isLocalhost ? 'https://music-dl.sayqz.com/api' : '/api';
             } else {
                 url = `${API_BASE}/?source=${platform}&type=search&keyword=${encodeURIComponent(keyword)}`;
             }
+
+            console.log('搜索调试信息:');
+            console.log('- 平台:', platform);
+            console.log('- 关键词:', keyword);
+            console.log('- API_BASE:', API_BASE);
+            console.log('- 构建的URL:', url);
 
             const response = await fetch(url);
             const data = await response.json();
