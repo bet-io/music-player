@@ -906,16 +906,30 @@ function ensureHttps(url) {
     // 加载音频
     async function loadAudio(url) {
         try {
+            // 尝试HEAD请求获取重定向后的URL
             const response = await fetch(url, { method: 'HEAD' });
+            if (!response.ok) {
+                throw new Error(`HEAD请求失败: ${response.status}`);
+            }
             let audioUrl = response.url;
             // 确保使用HTTPS协议避免混合内容问题
             audioUrl = ensureHttps(audioUrl);
+            console.log('音频URL:', audioUrl);
             audio.src = audioUrl;
             audio.play();
         } catch (error) {
-            console.error('加载音频失败:', error);
-            showError('加载音频失败');
-            await tryNextQuality();
+            console.error('HEAD请求失败，尝试直接使用原始URL:', error);
+            // HEAD失败时，尝试直接使用原始URL
+            try {
+                let audioUrl = ensureHttps(url);
+                console.log('使用原始URL作为后备:', audioUrl);
+                audio.src = audioUrl;
+                audio.play();
+            } catch (fallbackError) {
+                console.error('后备方案也失败:', fallbackError);
+                showError('加载音频失败');
+                await tryNextQuality();
+            }
         }
     }
 
@@ -1346,6 +1360,9 @@ function ensureHttps(url) {
             try {
                 const url = `${API_BASE}/api/?source=${platform}&id=${songId}&type=url&br=${quality}`;
                 const response = await fetch(url, { method: 'HEAD' });
+                if (!response.ok) {
+                    throw new Error(`HEAD请求失败: ${response.status}`);
+                }
                 let audioUrl = response.url;
                 // 确保使用HTTPS协议避免混合内容问题
                 audioUrl = ensureHttps(audioUrl);
@@ -1353,6 +1370,7 @@ function ensureHttps(url) {
                 return { quality, success: true };
             } catch (error) {
                 console.log(`无法获取音质 ${quality}:`, error);
+                // 预加载失败，不设置audioUrlMap[quality]，让getAudioUrl返回原始URL
                 return { quality, success: false, error };
             }
         });
