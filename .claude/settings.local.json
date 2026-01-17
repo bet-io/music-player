@@ -8,7 +8,9 @@
       "Bash(git push:*)",
       "Bash(git pull:*)",
       "Bash(ls:*)",
-      "Bash(git remote set-url origin https://github.com/bet-io/music-player.git)"
+      "Bash(git remote set-url origin https://github.com/bet-io/music-player.git)",
+      "Bash(dir:*)",
+      "Bash(git rm:*)"
     ]
   }
 }
