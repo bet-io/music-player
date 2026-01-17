@@ -796,11 +796,14 @@ console.log('- API_BASE:', API_BASE);
         currentQuality = quality;
         currentPlatform = platform;
 
-        // 搜索频率限制
+        // 搜索频率限制（开发环境放宽限制）
         const now = Date.now();
         const timeSinceLastSearch = now - lastSearchTime;
-        if (timeSinceLastSearch < MIN_SEARCH_INTERVAL) {
-            showError(`搜索过于频繁，请等待 ${Math.ceil((MIN_SEARCH_INTERVAL - timeSinceLastSearch) / 1000)} 秒后再试`);
+        const effectiveMinInterval = isDevelopment ? 500 : MIN_SEARCH_INTERVAL; // 开发环境0.5秒，生产环境2秒
+
+        if (timeSinceLastSearch < effectiveMinInterval) {
+            showError(`搜索过于频繁，请等待 ${Math.ceil((effectiveMinInterval - timeSinceLastSearch) / 1000)} 秒后再试`);
+            console.log(`频率限制: 需要等待 ${effectiveMinInterval - timeSinceLastSearch}ms (环境: ${isDevelopment ? '开发' : '生产'})`);
             return;
         }
 
@@ -822,6 +825,30 @@ console.log('- API_BASE:', API_BASE);
             console.log('- 构建的URL:', url);
 
             const response = await fetch(url);
+
+            // 检查HTTP状态码
+            if (!response.ok) {
+                console.error('HTTP错误状态:', response.status, response.statusText);
+                if (response.status === 500) {
+                    let errorMessage = '服务器内部错误 (500)，请稍后重试';
+                    if (platform === 'qq') {
+                        errorMessage += '。QQ音乐服务可能暂时不可用，请尝试网易云音乐或酷我音乐';
+                    } else if (platform === 'kuwo') {
+                        errorMessage += '。酷我音乐服务可能暂时不可用，请尝试网易云音乐或QQ音乐';
+                    } else {
+                        errorMessage += '或尝试其他平台';
+                    }
+                    showError(errorMessage);
+                } else if (response.status === 404) {
+                    showError('API接口不存在 (404)，请检查网络连接');
+                } else if (response.status === 429) {
+                    showError('请求过于频繁 (429)，请稍后重试');
+                } else {
+                    showError(`服务器错误 (${response.status})，请稍后重试`);
+                }
+                return;
+            }
+
             const data = await response.json();
 
             if (data.code === 200) {
@@ -832,7 +859,17 @@ console.log('- API_BASE:', API_BASE);
             }
         } catch (error) {
             console.error('搜索失败:', error);
-            showError('网络错误，请稍后重试');
+
+            // 更详细的错误分类
+            if (error.name === 'SyntaxError') {
+                showError('服务器返回了无效的数据格式，请稍后重试');
+            } else if (error.message.includes('Failed to fetch')) {
+                showError('网络连接失败，请检查网络连接');
+            } else if (error.message.includes('NetworkError')) {
+                showError('网络错误，请检查网络连接');
+            } else {
+                showError('搜索失败: ' + error.message);
+            }
         }
     }
 
@@ -1583,7 +1620,23 @@ console.log('- API_BASE:', API_BASE);
             // 搜索QQ音乐中的相同歌曲
             const qqSearchUrl = `${API_BASE}/?source=qq&type=search&keyword=${encodeURIComponent(`${songName} ${songArtist}`)}`;
             try {
+                console.log('回退搜索调试信息:');
+                console.log('- 原始歌曲:', songName, '-', songArtist);
+                console.log('- 搜索URL:', qqSearchUrl);
+
                 const response = await fetch(qqSearchUrl);
+
+                // 检查HTTP状态码
+                if (!response.ok) {
+                    console.error('回退搜索HTTP错误:', response.status, response.statusText);
+                    if (response.status === 500) {
+                        console.log('QQ音乐搜索服务器错误 (500)，跳过回退搜索');
+                        return;
+                    }
+                    // 其他错误也跳过回退搜索
+                    return;
+                }
+
                 const data = await response.json();
 
                 if (data.code === 200 && data.data && data.data.length > 0) {
@@ -1605,9 +1658,14 @@ console.log('- API_BASE:', API_BASE);
                     // 重新加载歌曲信息
                     await loadSongInfo(currentSong);
                     return;
+                } else {
+                    console.log('QQ音乐搜索返回非200状态码:', data.code);
                 }
             } catch (error) {
                 console.log('切换QQ音乐失败:', error);
+                if (error.name === 'SyntaxError') {
+                    console.log('服务器返回了无效的JSON数据');
+                }
             }
         }
 
