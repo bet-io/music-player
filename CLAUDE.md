@@ -12,15 +12,12 @@ This is a web-based music player application that uses the TuneHub API to search
 ├── music-player.html              # Main application - single-file music player
 ├── music-player-backup.html       # Backup copy (2026-01-17)
 ├── music-player-backup-20260117-143603.html  # Latest backup with timestamp
-├── music-player-optimized.html    # Optimized version (if created)
+├── music-player-enhanced.html     # Enhanced version with additional features
 ├── tunefree-api.md                # TuneHub API documentation (Chinese)
 ├── CLAUDE.md                      # This file - development guidance
-├── OPTIMIZATION_SUMMARY.md        # Optimization summary (2026-01-17)
-├── OPTIMIZATION_REPORT_20260117.md  # Detailed optimization report
-├── REALTIME_QUALITY_CHANGES.md    # Quality switching documentation
-├── REALTIME_QUALITY_SUMMARY.md    # Quality switching summary
-├── REALTIME_QUALITY_TEST.md       # Quality testing guide
 ├── TEST_CHECKLIST.md              # Comprehensive test checklist
+├── README.md                      # Project documentation
+├── README-V2.md                   # V2.0 feature documentation
 └── .claude/
     └── settings.local.json        # Claude Code local settings
 ```
@@ -29,11 +26,9 @@ This is a web-based music player application that uses the TuneHub API to search
 
 ### Single-File Application
 The entire application is contained in `music-player.html` with:
-- **Embedded CSS** (~670 lines) - Modern gradient design with glassmorphism effects
-- **Embedded JavaScript** (~1350 lines) - Full music player functionality
+- **Embedded CSS** (~1200 lines) - Modern gradient design with glassmorphism effects
+- **Embedded JavaScript** (~1600 lines) - Full music player functionality
 - **No build process required** - Just open in a browser
-
-**Note:** The current optimized version has ~200 fewer lines of code than the backup due to code deduplication.
 
 ### Key Components
 
@@ -102,9 +97,65 @@ All download functions use `fetch` with `blob` to create object URLs, which prev
 - **Album cover animation** - Pulsing animation during playback
 - **Keyboard shortcuts** - Space (play/pause), Arrow Left/Right (seek -10s/+10s)
 - **Quality selector** - Real-time quality switching
-- **Volume control** - **NEW** Slider with visual percentage display, persists preference across sessions
+- **Volume control** - Slider with visual percentage display, persists preference across sessions
 - **Active song highlighting** - Visual indication of currently playing song
 - **Error handling** - User-friendly error messages with retry suggestions
+
+### V2.0 Features (2026-01-17 Update)
+
+#### Dark/Light Theme
+- Complete theme switching system
+- Persists preference to localStorage
+- All components automatically adapt
+
+#### Mini Player
+- Floating mini player in bottom-right corner
+- Complete playback controls
+- Progress bar display
+- Toggle between mini and full player
+
+#### Audio Visualizer
+- Real-time frequency spectrum display
+- 64 bars with gradient colors
+- Canvas-based rendering using Web Audio API
+
+#### Play Modes
+- **顺序播放** (Normal) - Play songs in order
+- **单曲循环** (Single) - Repeat current song
+- **列表循环** (Loop) - Loop through entire list
+- **随机播放** (Shuffle) - Random selection
+
+#### Playlist Management
+- Create multiple playlists
+- Add songs from search results
+- View and play songs from playlists
+- Delete playlists and songs
+
+#### Play Statistics
+- Total play count
+- Today's play count
+- Total play time (minutes)
+- Favorite song count
+
+#### Smart Recommendations
+- Based on play history
+- Click to search and play
+
+#### Data Management
+- Export all data as JSON
+- Import from backup
+- Backup playlists separately
+- Clear all data
+
+#### Notification System
+- Toast notifications for all actions
+- Auto-dismiss after 3 seconds
+- Smooth slide animations
+
+#### Offline Mode
+- All data persisted to localStorage
+- View history and playlists offline
+- Automatic sync when online
 
 ## Commands
 
@@ -158,17 +209,17 @@ The application is client-side only. To test:
 ### Common Development Tasks
 
 **Modifying the UI:**
-- CSS is embedded in `<style>` tag (lines 7-667)
+- CSS is embedded in `<style>` tag (lines 7-1217)
 - Main layout uses CSS Grid with 2 columns on desktop, 1 on mobile
 - Colors use gradient theme: `#667eea` to `#764ba2`
 
 **Modifying the API:**
-- API base URL is defined at line 849: `const API_BASE = 'https://music-dl.sayqz.com'`
+- API base URL is defined at line 1451: `const API_BASE = 'https://music-dl.sayqz.com'`
 - All API endpoints are constructed dynamically based on platform and song ID
 
 **Adding new features:**
-- Add new download functions after existing download functions (around line 1210)
-- Add new UI controls in the HTML structure (around line 740-830)
+- Add new download functions after existing download functions (around line 2621)
+- Add new UI controls in the HTML structure (around line 1245-1445)
 - Update CSS for new UI elements (embedded in `<style>` tag)
 - **Note:** Consider using the existing `downloadFile()` helper function for any new download features
 
@@ -202,7 +253,7 @@ The application implements automatic source switching when audio fails to load:
 
 ### Backup & Recovery
 - `music-player-backup.html` contains a backup copy (original version before 2026-01-17 optimization)
-- `music-player-optimized.html` may contain the optimized version (if created)
+- `music-player-enhanced.html` may contain the enhanced version with additional features
 - To restore: copy backup to main file or vice versa
 - Current version includes all features up to 2026-01-17
 
@@ -350,8 +401,6 @@ This is a personal music player application. The TuneHub API documentation inclu
 
 ## Related Documentation Files
 - `tunefree-api.md` - Complete TuneHub API documentation
-- `OPTIMIZATION_SUMMARY.md` - Optimization summary (2026-01-17)
-- `OPTIMIZATION_REPORT_20260117.md` - Detailed optimization report
 - `TEST_CHECKLIST.md` - Comprehensive test checklist
-- `REALTIME_QUALITY_TEST.md` - Real-time quality switching test guide
-- `REALTIME_QUALITY_CHANGES.md` - Real-time quality switching modification summary
+- `README.md` - Project documentation
+- `README-V2.md` - V2.0 feature documentation
