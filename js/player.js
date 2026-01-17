@@ -1,12 +1,26 @@
 // 配置常量
 // 根据环境选择API地址
-const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '';
-const isVercel = window.location.hostname.includes('vercel.app') || window.location.hostname.includes('.now.sh');
-const API_BASE = isLocalhost && !isVercel ? 'https://music-dl.sayqz.com/api' : '/api';
+const hostname = window.location.hostname;
+const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '';
+const isVercel = hostname.includes('vercel') || hostname.includes('.now.sh') || hostname.includes('.vercel.app');
+const isDevelopment = isLocalhost && !isVercel;
+const API_BASE = isDevelopment ? 'https://music-dl.sayqz.com/api' : '/api';
+
+// 在页面顶部显示环境信息（仅调试）
+try {
+    const envInfo = document.createElement('div');
+    envInfo.style.cssText = 'position:fixed;top:10px;right:10px;background:#333;color:#fff;padding:8px 12px;border-radius:4px;font-size:12px;z-index:9999;opacity:0.8;font-family:monospace;';
+    envInfo.textContent = `Env: ${isDevelopment ? 'DEV' : 'PROD'} | API: ${API_BASE}`;
+    document.body.appendChild(envInfo);
+} catch (e) {
+    // 忽略错误
+}
+
 console.log('API配置调试:');
-console.log('- 当前主机名:', window.location.hostname);
+console.log('- 当前主机名:', hostname);
 console.log('- 是否为本地:', isLocalhost);
 console.log('- 是否为Vercel:', isVercel);
+console.log('- 是否为开发环境:', isDevelopment);
 console.log('- API_BASE:', API_BASE);
     const QUALITIES = ['128k', '320k', 'flac', 'flac24bit'];
     const QUALITY_NAMES = {
